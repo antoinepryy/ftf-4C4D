@@ -33,10 +33,9 @@ def configure_env() -> dict:
         "DEPLOY_MODE": "local",
         "RUN_MODE": "subprocess",
         "DATABASE_URL": f"sqlite:///{(d / 'ftf.db').as_posix()}",
-        "S3_ENDPOINT": "http://127.0.0.1:9000",
-        "S3_ACCESS_KEY": "ftflocal",
-        "S3_SECRET_KEY": "ftflocal-secret",
-        "S3_BUCKET": "ftf",
+        # Raw filesystem storage by default — no S3 server / no MinIO needed.
+        # Set STORAGE_DIR="" plus S3_* to use an S3 backend instead.
+        "STORAGE_DIR": str(d / "storage"),
     }
     for k, v in defaults.items():
         os.environ.setdefault(k, v)
@@ -64,8 +63,8 @@ def maybe_start_minio() -> subprocess.Popen | None:
         return None
     env = {
         **os.environ,
-        "MINIO_ROOT_USER": os.environ["S3_ACCESS_KEY"],
-        "MINIO_ROOT_PASSWORD": os.environ["S3_SECRET_KEY"],
+        "MINIO_ROOT_USER": os.environ.get("S3_ACCESS_KEY", "minioadmin"),
+        "MINIO_ROOT_PASSWORD": os.environ.get("S3_SECRET_KEY", "minioadmin"),
     }
     proc = subprocess.Popen(
         [binary, "server", str(data_dir() / "minio-data"), "--address", "127.0.0.1:9000"],

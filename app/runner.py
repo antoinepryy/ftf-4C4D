@@ -28,6 +28,8 @@ def build_env(run) -> dict[str, str]:
     }
     if run.active_checkpoint:
         env["ACTIVE_CHECKPOINT"] = run.active_checkpoint
+    if s.storage_dir:
+        env["STORAGE_DIR"] = s.storage_dir
     return env
 
 

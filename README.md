@@ -34,26 +34,28 @@ curl -X POST localhost:8000/clients/c1/runs -H 'content-type: application/json' 
 curl localhost:8000/clients/c1/runs/<run_id>
 ```
 
-## Local mode (single process, no Docker)
+## Local mode (single process, no Docker, no S3 server)
 
 For running entirely on a client machine — compute and storage both local. Needs
-only Python and a local S3 endpoint. A native `minio` binary can be auto-started
-by pointing `FTF_MINIO_BIN` at it; otherwise bring your own local S3.
+only Python. Checkpoints are stored as **plain files on disk** (no MinIO/S3
+server); run metadata in SQLite. No Redis, Celery, Postgres or Docker.
 
 ```bash
 pip install -e .
-# point at a local S3 (e.g. a native minio binary, or an existing one)
-export FTF_MINIO_BIN=/path/to/minio          # optional: auto-start bundled minio
-python -m app.local_main                      # serves http://127.0.0.1:8000/ and opens a browser
+python -m app.local_main      # serves http://127.0.0.1:8000/ and opens a browser
 ```
 
 Defaults (overridable via env): `DEPLOY_MODE=local`, `RUN_MODE=subprocess`,
-SQLite DB + MinIO data under the OS app-data dir (`%LOCALAPPDATA%\ftf` on Windows,
-`~/.local/share/ftf` elsewhere), S3 at `http://127.0.0.1:9000`. `FTF_PORT` sets
-the port; `FTF_OPEN_BROWSER=0` disables the browser launch.
+storage + SQLite DB under the OS app-data dir (`%LOCALAPPDATA%\ftf` on Windows,
+`~/.local/share/ftf` elsewhere). Checkpoints land at
+`<data>/storage/clients/<client>/runs/<run>/checkpoints/ckpt_NNN.json`.
+`FTF_PORT` sets the port; `FTF_OPEN_BROWSER=0` disables the browser launch.
+
+To use an S3 backend instead of raw files, set `STORAGE_DIR=""` and provide the
+`S3_*` vars (a native `minio` binary can be auto-started via `FTF_MINIO_BIN`).
 
 This module is the entrypoint a PyInstaller-packaged Windows `.exe` runs, bundled
-alongside `minio.exe` and the native compute binary — no Docker required.
+alongside the native compute binary — no Docker required.
 
 ## Tests
 

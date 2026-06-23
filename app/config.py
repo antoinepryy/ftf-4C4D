@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     #          pool (no Redis/Celery/Postgres needed; pair with a sqlite DATABASE_URL).
     deploy_mode: str = "cloud"
     local_workers: int = 2
+    # When set, checkpoints are stored as plain files under this directory
+    # (no S3 server needed). Empty = use the S3 backend above. The same value is
+    # passed to the compute process as STORAGE_DIR so both sides agree.
+    storage_dir: str = ""
 
 
 @lru_cache

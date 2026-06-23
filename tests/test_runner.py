@@ -22,7 +22,7 @@ def test_build_env_maps_contract(monkeypatch):
             s3_endpoint="http://minio:9000", s3_access_key="a",
             s3_secret_key="b", s3_bucket="ftf",
             stub_image="stub-compute:latest", docker_network="ftf_default",
-            run_timeout_s=10,
+            run_timeout_s=10, storage_dir="",
         ))())
     run = Run(run_id="r1", client_id="c1", nbr_pts=1000, step=10,
               active_checkpoint="clients/c1/runs/r0/checkpoints/ckpt_002.json")
@@ -41,7 +41,7 @@ def test_build_env_omits_absent_checkpoint(monkeypatch):
             s3_endpoint="http://minio:9000", s3_access_key="a",
             s3_secret_key="b", s3_bucket="ftf",
             stub_image="stub-compute:latest", docker_network="ftf_default",
-            run_timeout_s=10,
+            run_timeout_s=10, storage_dir="",
         ))())
     run = Run(run_id="r1", client_id="c1", nbr_pts=10, step=2, active_checkpoint=None)
     env = runner.build_env(run)
