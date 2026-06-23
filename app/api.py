@@ -5,6 +5,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from app.db import get_session
 from app import repository, s3
+from app.config import get_settings
 from app.schemas import ClientSummary, RunCreate, RunOut
 from app.dispatch import enqueue
 
@@ -26,8 +27,22 @@ def _on_startup():
         pass
 
 
+def _scope_client() -> str | None:
+    """The owner client id when running single-tenant (local mode), else None."""
+    s = get_settings()
+    return s.local_client_id if s.deploy_mode == "local" else None
+
+
+@app.get("/config", include_in_schema=False)
+def config():
+    return {"deploy_mode": get_settings().deploy_mode, "client_id": _scope_client()}
+
+
 @app.post("/clients/{client_id}/runs", response_model=RunOut, status_code=201)
 def create_run(client_id: str, payload: RunCreate):
+    scope = _scope_client()
+    if scope:
+        client_id = scope  # local mode is single-tenant: everything is the owner's
     if payload.active_checkpoint and not s3.object_exists(payload.active_checkpoint):
         raise HTTPException(status_code=400, detail="active_checkpoint not found in S3")
     run_id = uuid4().hex
@@ -55,14 +70,22 @@ def list_runs(client_id: str):
 
 @app.get("/clients", response_model=list[ClientSummary])
 def list_clients():
+    scope = _scope_client()
     with get_session() as session:
-        return [ClientSummary(**s) for s in repository.client_summaries(session)]
+        rows = repository.client_summaries(session)
+    if scope:
+        rows = [r for r in rows if r["client_id"] == scope]
+    return [ClientSummary(**r) for r in rows]
 
 
 @app.get("/runs", response_model=list[RunOut])
 def list_all_runs(status: str | None = None):
+    scope = _scope_client()
     with get_session() as session:
-        return [RunOut.model_validate(r) for r in repository.list_all_runs(session, status)]
+        runs = repository.list_all_runs(session, status)
+    if scope:
+        runs = [r for r in runs if r.client_id == scope]
+    return [RunOut.model_validate(r) for r in runs]
 
 
 @app.get("/", include_in_schema=False)

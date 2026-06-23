@@ -256,6 +256,7 @@
   const $ = (s) => document.querySelector(s);
   let filter = "";
   let clientFilter = null;
+  let cfg = { deploy_mode: "cloud", client_id: null };
 
   const fmt = (n) => String(n).padStart(2, "0");
   function tick() {
@@ -359,7 +360,18 @@
     btn.disabled = false; btn.textContent = old;
   };
 
-  refresh();
+  async function applyConfig() {
+    try { cfg = await getJSON("/config"); } catch (e) { return; }
+    if (cfg.deploy_mode === "local" && cfg.client_id) {
+      // single-tenant desktop: lock the owner, drop multi-client chrome
+      const inp = $("#f-client");
+      inp.value = cfg.client_id; inp.readOnly = true;
+      inp.parentElement.querySelector("label").textContent = `OWNER · ${cfg.client_id}`;
+      $(".brand .tag").textContent = `local · ${cfg.client_id}`;
+    }
+  }
+
+  (async () => { await applyConfig(); await refresh(); })();
   setInterval(refresh, 3000);
 </script>
 </body>

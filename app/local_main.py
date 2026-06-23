@@ -28,9 +28,16 @@ def data_dir() -> Path:
 
 def configure_env() -> dict:
     """Populate defaults for local mode without overriding anything explicit."""
+    import getpass
+
+    try:
+        owner = getpass.getuser()
+    except Exception:
+        owner = "local"
     d = data_dir()
     defaults = {
         "DEPLOY_MODE": "local",
+        "LOCAL_CLIENT_ID": owner,
         "RUN_MODE": "subprocess",
         "DATABASE_URL": f"sqlite:///{(d / 'ftf.db').as_posix()}",
         # Raw filesystem storage by default — no S3 server / no MinIO needed.

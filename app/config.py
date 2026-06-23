@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     # (no S3 server needed). Empty = use the S3 backend above. The same value is
     # passed to the compute process as STORAGE_DIR so both sides agree.
     storage_dir: str = ""
+    # In local mode the app is single-tenant: every run belongs to this owner and
+    # the dashboard only ever shows it. Ignored in cloud mode (multi-tenant).
+    local_client_id: str = "local"
 
 
 @lru_cache
