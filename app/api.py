@@ -7,6 +7,16 @@ from app.tasks import run_compute
 
 app = FastAPI(title="FTF prototype")
 
+from app.bootstrap import init as _bootstrap_init  # noqa: E402
+
+
+@app.on_event("startup")
+def _on_startup():
+    try:
+        _bootstrap_init()
+    except Exception:
+        pass
+
 
 @app.post("/clients/{client_id}/runs", response_model=RunOut, status_code=201)
 def create_run(client_id: str, payload: RunCreate):
