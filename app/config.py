@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     # "subprocess": worker runs the compute module in-process as a subprocess
     #               (no docker socket; safe on shared hosts / PaaS like Coolify).
     run_mode: str = "docker"
+    # "cloud": runs are enqueued on Celery/Redis and consumed by separate workers.
+    # "local": single-process desktop mode — runs execute in an in-process thread
+    #          pool (no Redis/Celery/Postgres needed; pair with a sqlite DATABASE_URL).
+    deploy_mode: str = "cloud"
+    local_workers: int = 2
 
 
 @lru_cache

@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse
 from app.db import get_session
 from app import repository, s3
 from app.schemas import ClientSummary, RunCreate, RunOut
-from app.tasks import run_compute
+from app.dispatch import enqueue
 
 app = FastAPI(title="FTF prototype")
 
@@ -30,7 +30,7 @@ def create_run(client_id: str, payload: RunCreate):
     with get_session() as session:
         run = repository.create_run(session, run_id, client_id, payload)
         out = RunOut.model_validate(run)
-    run_compute.delay(run_id, client_id)
+    enqueue(run_id, client_id)
     return out
 
 

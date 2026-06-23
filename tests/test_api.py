@@ -12,7 +12,7 @@ def client(monkeypatch, db_session):
         yield db_session
 
     monkeypatch.setattr(api, "get_session", fake_session)
-    monkeypatch.setattr(api.run_compute, "delay", lambda *a, **k: None)
+    monkeypatch.setattr(api, "enqueue", lambda *a, **k: None)
     monkeypatch.setattr(api.s3, "object_exists", lambda key: True)
     return TestClient(api.app)
 

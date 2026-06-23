@@ -8,7 +8,17 @@ class Base(DeclarativeBase):
     pass
 
 
-engine = create_engine(get_settings().database_url, future=True)
+def _engine_kwargs(url: str) -> dict:
+    # SQLite (local desktop mode) is touched by both the API thread and the
+    # in-process worker pool, so connections must not be pinned to one thread.
+    if url.startswith("sqlite"):
+        return {"connect_args": {"check_same_thread": False}}
+    return {}
+
+
+engine = create_engine(
+    get_settings().database_url, future=True, **_engine_kwargs(get_settings().database_url)
+)
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False, future=True)
 
 
