@@ -1,4 +1,6 @@
-import docker
+import subprocess
+import sys
+
 from app.config import get_settings
 
 
@@ -7,6 +9,8 @@ class RunnerTimeout(Exception):
 
 
 def _docker_client():
+    import docker  # imported lazily so subprocess mode needs no docker SDK/socket
+
     return docker.from_env()
 
 
@@ -43,3 +47,26 @@ def run_container(env: dict[str, str]) -> int:
     finally:
         container.remove(force=True)
     return int(result["StatusCode"])
+
+
+def run_subprocess(env: dict[str, str]) -> int:
+    """Run the compute module in a child process (no docker socket required)."""
+    import os
+
+    s = get_settings()
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-m", "stub.compute"],
+            env={**os.environ, **env},
+            timeout=s.run_timeout_s,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RunnerTimeout(str(exc)) from exc
+    return proc.returncode
+
+
+def execute(env: dict[str, str]) -> int:
+    """Dispatch to the configured run mode and return the compute exit code."""
+    if get_settings().run_mode == "subprocess":
+        return run_subprocess(env)
+    return run_container(env)

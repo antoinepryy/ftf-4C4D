@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     stub_image: str = "stub-compute:latest"
     docker_network: str = "ftf_default"
     run_timeout_s: int = 120
+    # "docker": worker launches a real sibling container (local, needs docker socket).
+    # "subprocess": worker runs the compute module in-process as a subprocess
+    #               (no docker socket; safe on shared hosts / PaaS like Coolify).
+    run_mode: str = "docker"
 
 
 @lru_cache

@@ -14,7 +14,7 @@ def run_compute(run_id: str, client_id: str) -> None:
             raise RuntimeError(f"run {run_id} not found for client {client_id}")
         env = runner.build_env(run)
         try:
-            exit_code = runner.run_container(env)
+            exit_code = runner.execute(env)
         except runner.RunnerTimeout as exc:
             with get_session() as session:
                 repository.set_status(session, run_id, "failed", error=str(exc))

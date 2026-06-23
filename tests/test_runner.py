@@ -3,6 +3,19 @@ from app import runner
 from app.models import Run
 
 
+def test_execute_dispatches_on_run_mode(monkeypatch):
+    monkeypatch.setattr(runner, "run_container", lambda env: ("docker", env))
+    monkeypatch.setattr(runner, "run_subprocess", lambda env: ("subprocess", env))
+
+    monkeypatch.setattr(runner, "get_settings",
+                        lambda: type("S", (), dict(run_mode="subprocess"))())
+    assert runner.execute({"X": "1"}) == ("subprocess", {"X": "1"})
+
+    monkeypatch.setattr(runner, "get_settings",
+                        lambda: type("S", (), dict(run_mode="docker"))())
+    assert runner.execute({"X": "1"}) == ("docker", {"X": "1"})
+
+
 def test_build_env_maps_contract(monkeypatch):
     monkeypatch.setattr(runner, "get_settings", lambda: type(
         "S", (), dict(
