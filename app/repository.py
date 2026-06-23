@@ -29,6 +29,30 @@ def list_runs(session, client_id: str) -> list[Run]:
     return list(session.scalars(select(Run).where(Run.client_id == client_id)))
 
 
+_STATUSES = ("done", "failed", "running", "queued")
+
+
+def list_all_runs(session, status: str | None = None) -> list[Run]:
+    stmt = select(Run).order_by(Run.created_at.desc())
+    if status is not None:
+        stmt = stmt.where(Run.status == status)
+    return list(session.scalars(stmt))
+
+
+def client_summaries(session) -> list[dict]:
+    """Per-client run counts, one row per client, broken down by status."""
+    summaries: dict[str, dict] = {}
+    for run in session.scalars(select(Run)):
+        s = summaries.setdefault(
+            run.client_id,
+            {"client_id": run.client_id, "total": 0, **{k: 0 for k in _STATUSES}},
+        )
+        s["total"] += 1
+        if run.status in _STATUSES:
+            s[run.status] += 1
+    return sorted(summaries.values(), key=lambda s: s["client_id"])
+
+
 def set_status(session, run_id: str, status: str, error: str | None = None) -> None:
     run = session.get(Run, run_id)
     run.status = status

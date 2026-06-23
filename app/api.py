@@ -1,11 +1,15 @@
+from pathlib import Path
 from uuid import uuid4
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from app.db import get_session
 from app import repository, s3
-from app.schemas import RunCreate, RunOut
+from app.schemas import ClientSummary, RunCreate, RunOut
 from app.tasks import run_compute
 
 app = FastAPI(title="FTF prototype")
+
+_STATIC = Path(__file__).parent / "static"
 
 from app.bootstrap import init as _bootstrap_init  # noqa: E402
 
@@ -43,3 +47,20 @@ def get_run(client_id: str, run_id: str):
 def list_runs(client_id: str):
     with get_session() as session:
         return [RunOut.model_validate(r) for r in repository.list_runs(session, client_id)]
+
+
+@app.get("/clients", response_model=list[ClientSummary])
+def list_clients():
+    with get_session() as session:
+        return [ClientSummary(**s) for s in repository.client_summaries(session)]
+
+
+@app.get("/runs", response_model=list[RunOut])
+def list_all_runs(status: str | None = None):
+    with get_session() as session:
+        return [RunOut.model_validate(r) for r in repository.list_all_runs(session, status)]
+
+
+@app.get("/", include_in_schema=False)
+def dashboard():
+    return FileResponse(_STATIC / "index.html")

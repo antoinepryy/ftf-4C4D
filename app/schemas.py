@@ -18,3 +18,12 @@ class RunOut(BaseModel):
     status: str
     checkpoints: list[str]
     error: str | None
+
+
+class ClientSummary(BaseModel):
+    client_id: str
+    total: int
+    done: int
+    failed: int
+    running: int
+    queued: int

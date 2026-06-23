@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FTF // CONTROL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #07090b;
+    --grid: rgba(94, 243, 140, 0.035);
+    --panel: #0d1115;
+    --panel-2: #11161b;
+    --line: #1c242c;
+    --ink: #d7e0e6;
+    --ink-dim: #6b7884;
+    --ink-faint: #3e4a54;
+    --done: #5ef38c;
+    --failed: #ff5c6c;
+    --running: #ffb547;
+    --queued: #5b8fb0;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --sans: 'IBM Plex Sans', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scrollbar-color: var(--line) var(--bg); }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 26px 26px;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 70% -10%, rgba(94,243,140,0.06), transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+  .wrap { position: relative; z-index: 1; max-width: 1320px; margin: 0 auto; padding: 28px 26px 80px; }
+
+  /* header */
+  header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    border-bottom: 1px solid var(--line); padding-bottom: 18px; flex-wrap: wrap; gap: 14px;
+  }
+  .brand { display: flex; align-items: baseline; gap: 14px; }
+  .brand h1 {
+    font-family: var(--mono); font-weight: 800; font-size: 26px; letter-spacing: -1px;
+    color: var(--ink);
+  }
+  .brand h1 b { color: var(--done); }
+  .brand .tag {
+    font-family: var(--mono); font-size: 11px; color: var(--ink-faint);
+    letter-spacing: 3px; text-transform: uppercase;
+  }
+  .live {
+    display: flex; align-items: center; gap: 9px; font-family: var(--mono);
+    font-size: 12px; color: var(--ink-dim); letter-spacing: 1px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--done);
+    box-shadow: 0 0 0 0 rgba(94,243,140,0.6); animation: ping 2.2s infinite; }
+  @keyframes ping {
+    0% { box-shadow: 0 0 0 0 rgba(94,243,140,0.5); }
+    70% { box-shadow: 0 0 0 7px rgba(94,243,140,0); }
+    100% { box-shadow: 0 0 0 0 rgba(94,243,140,0); }
+  }
+
+  /* stat strip */
+  .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin: 24px 0; }
+  .stat {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
+    padding: 16px 18px; position: relative; overflow: hidden;
+    animation: rise .5s both;
+  }
+  .stat::after {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent, var(--ink-faint));
+  }
+  .stat .k { font-family: var(--mono); font-size: 10.5px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-dim); }
+  .stat .v { font-family: var(--mono); font-weight: 800; font-size: 34px; margin-top: 6px; line-height: 1; color: var(--accent, var(--ink)); }
+  .stat.s-done { --accent: var(--done); }
+  .stat.s-failed { --accent: var(--failed); }
+  .stat.s-running { --accent: var(--running); }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  /* layout */
+  .grid { display: grid; grid-template-columns: 340px 1fr; gap: 18px; align-items: start; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 5px; }
+  .panel > .head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 16px; border-bottom: 1px solid var(--line);
+  }
+  .panel > .head h2 {
+    font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--ink); display: flex; gap: 8px; align-items: center;
+  }
+  .panel > .head h2 .hash { color: var(--ink-faint); }
+  .count-pill { font-family: var(--mono); font-size: 11px; color: var(--ink-dim); border: 1px solid var(--line); border-radius: 20px; padding: 2px 9px; }
+
+  /* clients */
+  .client { padding: 13px 16px; border-bottom: 1px solid var(--line); cursor: pointer; transition: background .15s; }
+  .client:last-child { border-bottom: none; }
+  .client:hover { background: var(--panel-2); }
+  .client.active { background: var(--panel-2); }
+  .client.active::before { content: ""; }
+  .client .row1 { display: flex; align-items: baseline; justify-content: space-between; }
+  .client .cid { font-family: var(--mono); font-weight: 600; font-size: 14px; color: var(--ink); }
+  .client .ctot { font-family: var(--mono); font-size: 11px; color: var(--ink-dim); }
+  .bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 10px; background: #0a0e11; gap: 1px; }
+  .bar i { display: block; height: 100%; }
+  .bar i.done { background: var(--done); }
+  .bar i.failed { background: var(--failed); }
+  .bar i.running { background: var(--running); }
+  .bar i.queued { background: var(--queued); }
+  .legend { display: flex; gap: 12px; margin-top: 9px; }
+  .legend span { font-family: var(--mono); font-size: 10px; color: var(--ink-dim); display: flex; align-items: center; gap: 5px; }
+  .legend span::before { content: ""; width: 7px; height: 7px; border-radius: 2px; background: var(--c); }
+
+  /* new run form */
+  .newrun { padding: 15px 16px; border-top: 1px solid var(--line); }
+  .newrun h3 { font-family: var(--mono); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 11px; }
+  .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+  .field label { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); letter-spacing: 1px; }
+  .field input {
+    background: #060809; border: 1px solid var(--line); border-radius: 3px; color: var(--ink);
+    font-family: var(--mono); font-size: 13px; padding: 8px 10px; outline: none; transition: border .15s;
+  }
+  .field input:focus { border-color: var(--done); }
+  .btn {
+    width: 100%; background: var(--done); color: #04140a; border: none; border-radius: 3px;
+    font-family: var(--mono); font-weight: 700; font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
+    padding: 10px; cursor: pointer; transition: transform .08s, filter .15s;
+  }
+  .btn:hover { filter: brightness(1.1); }
+  .btn:active { transform: translateY(1px); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* runs table */
+  .filters { display: flex; gap: 6px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .filters button {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+    background: transparent; border: 1px solid var(--line); color: var(--ink-dim);
+    padding: 5px 11px; border-radius: 20px; cursor: pointer; transition: all .15s;
+  }
+  .filters button:hover { color: var(--ink); border-color: var(--ink-faint); }
+  .filters button.on { color: var(--bg); background: var(--ink); border-color: var(--ink); font-weight: 700; }
+  .filters button.on.f-done { background: var(--done); border-color: var(--done); }
+  .filters button.on.f-failed { background: var(--failed); border-color: var(--failed); color: #fff; }
+  .filters button.on.f-running { background: var(--running); border-color: var(--running); color: #1a1204; }
+  .filters button.on.f-queued { background: var(--queued); border-color: var(--queued); }
+
+  .tablewrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--ink-faint); text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; background: var(--panel);
+  }
+  tbody td { padding: 11px 16px; border-bottom: 1px solid #131a20; font-size: 13px; vertical-align: middle; }
+  tbody tr { transition: background .12s; }
+  tbody tr:hover { background: var(--panel-2); }
+  td.mono, th.mono { font-family: var(--mono); }
+  .rid { color: var(--ink-dim); font-size: 12px; }
+  .cidcell { font-family: var(--mono); color: var(--ink); }
+  .badge {
+    font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 3px; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .badge.done { color: var(--done); background: rgba(94,243,140,0.1); }
+  .badge.failed { color: var(--failed); background: rgba(255,92,108,0.1); }
+  .badge.running { color: var(--running); background: rgba(255,181,71,0.12); }
+  .badge.running::before { animation: blink 1s steps(2, start) infinite; }
+  .badge.queued { color: var(--queued); background: rgba(91,143,176,0.12); }
+  @keyframes blink { 50% { opacity: .25; } }
+  .ckpts { font-family: var(--mono); color: var(--ink-dim); font-size: 12px; }
+  .ckpts b { color: var(--done); }
+  .err { color: var(--failed); font-family: var(--mono); font-size: 11px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .empty { padding: 50px 16px; text-align: center; color: var(--ink-faint); font-family: var(--mono); font-size: 13px; letter-spacing: 1px; }
+
+  footer { margin-top: 28px; font-family: var(--mono); font-size: 11px; color: var(--ink-faint); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  a { color: var(--done); text-decoration: none; }
+
+  @media (max-width: 920px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>FTF<b>//</b>CONTROL</h1>
+      <span class="tag">distributed compute · 4C4D</span>
+    </div>
+    <div class="live"><span class="dot"></span> LIVE · <span id="clock">--:--:--</span></div>
+  </header>
+
+  <section class="stats" id="stats"></section>
+
+  <div class="grid">
+    <div>
+      <div class="panel">
+        <div class="head"><h2><span class="hash">#</span> Clients</h2><span class="count-pill" id="cli-count">0</span></div>
+        <div id="clients"></div>
+        <div class="newrun">
+          <h3>↟ Launch run</h3>
+          <div class="field"><label>CLIENT_ID</label><input id="f-client" value="demo" /></div>
+          <div class="field"><label>NBR_PTS</label><input id="f-pts" type="number" value="3000" /></div>
+          <div class="field"><label>STEP</label><input id="f-step" type="number" value="10" /></div>
+          <button class="btn" id="launch">▶ Execute</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="head">
+        <h2><span class="hash">#</span> Runs</h2>
+        <span class="count-pill" id="run-count">0</span>
+      </div>
+      <div class="filters" id="filters">
+        <button data-f="" class="on">All</button>
+        <button data-f="done" class="f-done">Done</button>
+        <button data-f="failed" class="f-failed">Failed</button>
+        <button data-f="running" class="f-running">Running</button>
+        <button data-f="queued" class="f-queued">Queued</button>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr>
+            <th class="mono">Run ID</th><th class="mono">Client</th>
+            <th class="mono">Pts</th><th class="mono">Step</th>
+            <th class="mono">Status</th><th class="mono">Ckpts</th><th class="mono">Error</th>
+          </tr></thead>
+          <tbody id="runs"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="empty" style="display:none">NO RUNS MATCH FILTER</div>
+    </div>
+  </div>
+
+  <footer>
+    <span>FTF prototype · queue → worker → S3 · auto-refresh 3s</span>
+    <span><a href="/docs">API /docs ↗</a></span>
+  </footer>
+</div>
+
+<script>
+  const $ = (s) => document.querySelector(s);
+  let filter = "";
+  let clientFilter = null;
+
+  const fmt = (n) => String(n).padStart(2, "0");
+  function tick() {
+    const d = new Date();
+    $("#clock").textContent = `${fmt(d.getHours())}:${fmt(d.getMinutes())}:${fmt(d.getSeconds())}`;
+  }
+  setInterval(tick, 1000); tick();
+
+  async function getJSON(url) {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(r.status);
+    return r.json();
+  }
+
+  function statPill(k, v, cls) {
+    return `<div class="stat ${cls||''}"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+  }
+
+  function renderStats(clients, runs) {
+    const c = { done:0, failed:0, running:0, queued:0 };
+    runs.forEach(r => { if (c[r.status] !== undefined) c[r.status]++; });
+    $("#stats").innerHTML =
+      statPill("Clients", clients.length) +
+      statPill("Total runs", runs.length) +
+      statPill("Done", c.done, "s-done") +
+      statPill("Failed", c.failed, "s-failed") +
+      statPill("Running", c.running, "s-running");
+  }
+
+  function renderClients(clients) {
+    $("#cli-count").textContent = clients.length;
+    if (!clients.length) { $("#clients").innerHTML = `<div class="empty">NO CLIENTS YET</div>`; return; }
+    $("#clients").innerHTML = clients.map(c => {
+      const seg = (k) => c[k] ? `<i class="${k}" style="flex:${c[k]}"></i>` : "";
+      const active = clientFilter === c.client_id ? "active" : "";
+      return `<div class="client ${active}" data-cid="${c.client_id}">
+        <div class="row1"><span class="cid">${c.client_id}</span><span class="ctot">${c.total} run${c.total>1?'s':''}</span></div>
+        <div class="bar">${seg('done')}${seg('running')}${seg('queued')}${seg('failed')}</div>
+        <div class="legend">
+          <span style="--c:var(--done)">${c.done}</span>
+          <span style="--c:var(--running)">${c.running}</span>
+          <span style="--c:var(--queued)">${c.queued}</span>
+          <span style="--c:var(--failed)">${c.failed}</span>
+        </div>
+      </div>`;
+    }).join("");
+    document.querySelectorAll(".client").forEach(el => el.onclick = () => {
+      const cid = el.dataset.cid;
+      clientFilter = clientFilter === cid ? null : cid;
+      refresh();
+    });
+  }
+
+  function renderRuns(runs) {
+    let rows = runs;
+    if (clientFilter) rows = rows.filter(r => r.client_id === clientFilter);
+    $("#run-count").textContent = rows.length;
+    if (!rows.length) { $("#runs").innerHTML = ""; $("#empty").style.display = "block"; return; }
+    $("#empty").style.display = "none";
+    $("#runs").innerHTML = rows.map(r => `
+      <tr>
+        <td class="mono rid">${r.run_id.slice(0,12)}…</td>
+        <td class="cidcell">${r.client_id}</td>
+        <td class="mono">${r.nbr_pts}</td>
+        <td class="mono">${r.step}</td>
+        <td><span class="badge ${r.status}">${r.status}</span></td>
+        <td class="ckpts"><b>${r.checkpoints.length}</b></td>
+        <td class="err" title="${r.error||''}">${r.error||'—'}</td>
+      </tr>`).join("");
+  }
+
+  async function refresh() {
+    try {
+      const q = filter ? `/runs?status=${filter}` : "/runs";
+      const [clients, runs, allRuns] = await Promise.all([
+        getJSON("/clients"), getJSON(q), filter ? getJSON("/runs") : null
+      ]);
+      renderStats(clients, allRuns || runs);
+      renderClients(clients);
+      renderRuns(runs);
+    } catch (e) { /* transient; next tick */ }
+  }
+
+  $("#filters").querySelectorAll("button").forEach(b => b.onclick = () => {
+    $("#filters .on")?.classList.remove("on");
+    b.classList.add("on");
+    filter = b.dataset.f;
+    refresh();
+  });
+
+  $("#launch").onclick = async () => {
+    const btn = $("#launch"); btn.disabled = true; const old = btn.textContent; btn.textContent = "···";
+    const cid = $("#f-client").value.trim() || "demo";
+    const body = { nbr_pts: +$("#f-pts").value, step: +$("#f-step").value };
+    try {
+      await fetch(`/clients/${encodeURIComponent(cid)}/runs`, {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body)
+      });
+      await refresh();
+    } catch (e) {}
+    btn.disabled = false; btn.textContent = old;
+  };
+
+  refresh();
+  setInterval(refresh, 3000);
+</script>
+</body>
+</html>
