@@ -50,3 +50,17 @@ def test_run_compute_failure_on_timeout(patched, monkeypatch):
     run = repository.get_run(patched, "c1", "r3")
     assert run.status == "failed"
     assert "timed out" in run.error
+
+
+def test_run_compute_failure_on_unexpected_exception(patched, monkeypatch):
+    repository.create_run(patched, "r4", "c1", RunCreate(nbr_pts=10, step=2))
+    monkeypatch.setattr(tasks.runner, "build_env", lambda run: {"X": "1"})
+
+    def boom(env):
+        raise RuntimeError("image not found")
+
+    monkeypatch.setattr(tasks.runner, "run_container", boom)
+    tasks.run_compute("r4", "c1")
+    run = repository.get_run(patched, "c1", "r4")
+    assert run.status == "failed"
+    assert run.error and "image not found" in run.error
