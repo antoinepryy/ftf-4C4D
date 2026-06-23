@@ -56,12 +56,16 @@ def run_subprocess(env: dict[str, str]) -> int:
     import os
 
     s = get_settings()
+    child_env = {**os.environ, **env}
+    if getattr(sys, "frozen", False):
+        # In a PyInstaller build sys.executable is the bundled app, which ignores
+        # "-m": re-invoke it with a marker so its entrypoint runs the stub instead.
+        cmd = [sys.executable]
+        child_env["FTF_CHILD"] = "stub"
+    else:
+        cmd = [sys.executable, "-m", "stub.compute"]
     try:
-        proc = subprocess.run(
-            [sys.executable, "-m", "stub.compute"],
-            env={**os.environ, **env},
-            timeout=s.run_timeout_s,
-        )
+        proc = subprocess.run(cmd, env=child_env, timeout=s.run_timeout_s)
     except subprocess.TimeoutExpired as exc:
         raise RunnerTimeout(str(exc)) from exc
     return proc.returncode

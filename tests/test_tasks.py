@@ -1,5 +1,5 @@
 import pytest
-from app import tasks, repository
+from app import worker as tasks, repository
 from app.schemas import RunCreate
 
 

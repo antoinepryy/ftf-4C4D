@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 from uuid import uuid4
 from fastapi import FastAPI, HTTPException
@@ -9,7 +10,10 @@ from app.dispatch import enqueue
 
 app = FastAPI(title="FTF prototype")
 
-_STATIC = Path(__file__).parent / "static"
+# PyInstaller extracts bundled data under sys._MEIPASS; fall back to the source tree.
+_STATIC = (
+    Path(getattr(sys, "_MEIPASS", Path(__file__).parent.parent)) / "app" / "static"
+)
 
 from app.bootstrap import init as _bootstrap_init  # noqa: E402
 

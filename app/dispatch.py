@@ -28,11 +28,13 @@ def _reset_executor() -> None:
 
 
 def enqueue(run_id: str, client_id: str) -> None:
-    # Imported lazily so the attribute is resolved at call time (monkeypatchable,
-    # and avoids importing Celery wiring in local mode until first use).
-    from app.tasks import run_compute
-
+    # Imported lazily and per-mode: local never imports app.tasks, so Celery/kombu
+    # stay out of the desktop build entirely.
     if get_settings().deploy_mode == "local":
+        from app.worker import run_compute
+
         _get_executor().submit(run_compute, run_id, client_id)
     else:
-        run_compute.delay(run_id, client_id)
+        from app.tasks import run_compute_task
+
+        run_compute_task.delay(run_id, client_id)

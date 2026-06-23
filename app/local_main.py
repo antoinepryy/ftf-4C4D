@@ -89,8 +89,11 @@ def main() -> None:
             threading.Timer(1.5, lambda: webbrowser.open(url)).start()
 
         print(f"FTF local — dashboard on http://127.0.0.1:{port}/  (data: {data_dir()})")
-        # import string so the app is imported AFTER env defaults are set
-        uvicorn.run("app.api:app", host="127.0.0.1", port=port, log_level="info")
+        # import the app object now (env defaults are already set); an import
+        # string would fail to resolve inside a frozen PyInstaller build.
+        from app.api import app as asgi_app
+
+        uvicorn.run(asgi_app, host="127.0.0.1", port=port, log_level="info")
     finally:
         if minio is not None:
             minio.terminate()

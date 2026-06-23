@@ -4,4 +4,6 @@ __pycache__/
 .venv/
 *.egg-info/
 dist/
+build/ftf-local/
+*.spec
 .env

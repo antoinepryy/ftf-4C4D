@@ -1,11 +1,11 @@
 from pathlib import Path
 
-import boto3
-from botocore.exceptions import ClientError
 from app.config import get_settings
 
 
 def get_client():
+    import boto3  # lazy: filesystem-only local builds need no boto3
+
     s = get_settings()
     return boto3.client(
         "s3",
@@ -38,6 +38,8 @@ def object_exists(key: str) -> bool:
     sd = get_settings().storage_dir
     if sd:
         return (Path(sd) / key).is_file()
+    from botocore.exceptions import ClientError
+
     client = get_client()
     try:
         client.head_object(Bucket=get_settings().s3_bucket, Key=key)
@@ -51,6 +53,8 @@ def ensure_bucket() -> None:
     if sd:
         Path(sd).mkdir(parents=True, exist_ok=True)
         return
+    from botocore.exceptions import ClientError
+
     client = get_client()
     bucket = get_settings().s3_bucket
     try:

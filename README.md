@@ -54,8 +54,20 @@ storage + SQLite DB under the OS app-data dir (`%LOCALAPPDATA%\ftf` on Windows,
 To use an S3 backend instead of raw files, set `STORAGE_DIR=""` and provide the
 `S3_*` vars (a native `minio` binary can be auto-started via `FTF_MINIO_BIN`).
 
-This module is the entrypoint a PyInstaller-packaged Windows `.exe` runs, bundled
-alongside the native compute binary — no Docker required.
+### Standalone executable
+
+Package local mode into a single self-contained binary (no Python install on the
+client):
+
+```bash
+bash build/build_desktop.sh     # → dist/ftf-local  (host platform)
+./dist/ftf-local                # double-clickable; serves the dashboard, raw-file storage
+```
+
+The frozen binary re-invokes itself as the compute child (via `FTF_CHILD=stub`),
+so it needs no external `python`. macOS/Linux build here; the Windows `.exe` is
+produced the same way on a `windows-latest` CI runner. First launch extracts the
+onefile bundle (a few seconds); use `--onedir` in the build for instant start.
 
 ## Tests
 
