@@ -8,9 +8,11 @@ def run_compute(run_id: str, client_id: str) -> None:
     with get_session() as session:
         repository.set_status(session, run_id, "running")
         run = repository.get_run(session, client_id, run_id)
-        env = runner.build_env(run)
 
     try:
+        if run is None:
+            raise RuntimeError(f"run {run_id} not found for client {client_id}")
+        env = runner.build_env(run)
         try:
             exit_code = runner.run_container(env)
         except runner.RunnerTimeout as exc:

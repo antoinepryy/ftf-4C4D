@@ -64,3 +64,15 @@ def test_run_compute_failure_on_unexpected_exception(patched, monkeypatch):
     run = repository.get_run(patched, "c1", "r4")
     assert run.status == "failed"
     assert run.error and "image not found" in run.error
+
+
+def test_run_compute_failure_when_run_not_found_for_client(patched, monkeypatch):
+    # row exists for c1 but the task is dispatched with a mismatched client.
+    # get_run returns None -> the run must end failed, not stuck in running.
+    repository.create_run(patched, "r5", "c1", RunCreate(nbr_pts=10, step=2))
+    monkeypatch.setattr(tasks.runner, "run_container",
+                        lambda env: pytest.fail("run_container must not be called"))
+    tasks.run_compute("r5", "other")
+    run = repository.get_run(patched, "c1", "r5")
+    assert run.status == "failed"
+    assert run.error and "not found" in run.error
